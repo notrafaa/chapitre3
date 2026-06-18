@@ -1,0 +1,455 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@keyframes logo-shine-pass {
+  0% {
+    opacity: 0;
+    background-position: 150% 0;
+  }
+  18% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    background-position: -70% 0;
+  }
+}
+
+/* ========================================================================== */
+/*  Chapitre 3 — Styles globaux                                                */
+/* ========================================================================== */
+
+@layer base {
+  /* ---- Thème sombre (par défaut) ---- */
+  :root {
+    --ink-50: 246 246 247;
+    --ink-100: 230 230 232;
+    --ink-200: 201 201 205;
+    --ink-300: 163 163 169;
+    --ink-400: 118 118 125;
+    --ink-500: 83 83 89;
+    --ink-600: 58 58 63;
+    --ink-700: 38 38 41;
+    --ink-800: 22 22 24;
+    --ink-900: 11 11 12;
+    --ink-950: 5 5 6;
+    --paper: 245 244 239;
+    --paper-dim: 233 231 223;
+    --chrome-light: 233 234 238;
+    --chrome: 185 188 198;
+    --chrome-dark: 125 129 141;
+    color-scheme: dark;
+  }
+
+  /* ---- Thème clair (la palette s'inverse) ---- */
+  .light {
+    --ink-50: 17 17 20;
+    --ink-100: 28 28 32;
+    --ink-200: 45 45 50;
+    --ink-300: 74 74 80;
+    --ink-400: 110 110 116;
+    --ink-500: 140 140 146;
+    --ink-600: 176 176 181;
+    --ink-700: 206 205 202;
+    --ink-800: 222 221 216;
+    --ink-900: 234 233 228;
+    --ink-950: 247 246 242;
+    --paper: 20 20 23;
+    --paper-dim: 48 48 53;
+    --chrome-light: 92 94 102;
+    --chrome: 118 121 130;
+    --chrome-dark: 150 153 161;
+    color-scheme: light;
+  }
+
+  * {
+    @apply border-ink-700/40;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    /* Réserve toujours la place de la barre de défilement (pas de saut au scroll-lock).
+       On NE met PAS overflow-x:hidden ici : cela peut casser le header `fixed`. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    @apply bg-ink-950 text-paper font-sans antialiased;
+    text-rendering: optimizeLegibility;
+    /* Pas d'overflow ici : body est un ancêtre du header `fixed`.
+       Le débordement horizontal est contenu au niveau de <main> / sections. */
+  }
+
+  img,
+  picture,
+  video,
+  svg,
+  canvas {
+    -webkit-user-drag: none;
+    user-select: none;
+  }
+
+  /* Respect de prefers-reduced-motion : on neutralise les animations. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  ::selection {
+    @apply bg-paper text-ink-950;
+  }
+
+  /* Barre de défilement discrète */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #050506;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #262629;
+    border-radius: 9999px;
+    border: 2px solid #050506;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: #3a3a3f;
+  }
+
+  /* Focus visible accessible */
+  :focus-visible {
+    outline: 2px solid rgba(245, 244, 239, 0.7);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Conteneur éditorial centré (mobile-first : marges plus serrées sur petit écran) */
+  .container-editorial {
+    @apply mx-auto w-full max-w-editorial px-5 sm:px-8 lg:px-12;
+  }
+
+  /* Séparateur fin */
+  .hairline {
+    @apply h-px w-full bg-gradient-to-r from-transparent via-ink-600/60 to-transparent;
+  }
+
+  /* Texte « chromé » / métallique très discret */
+  .text-chrome {
+    background: linear-gradient(
+      180deg,
+      #ffffff 0%,
+      #cfd2d9 35%,
+      #8b8f99 55%,
+      #eef0f4 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .headline-gradient {
+    background: linear-gradient(180deg, #ffffff 0%, #f2f1ec 48%, #c8c8cc 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .hero-headline-gradient {
+    color: rgb(var(--paper));
+    -webkit-text-fill-color: currentColor;
+  }
+
+  /* Titre en contour (outline) */
+  .text-outline {
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(245, 244, 239, 0.35);
+  }
+
+  /* Bouton primaire éditorial */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full bg-paper px-7 py-3.5
+      text-sm font-medium uppercase tracking-wider text-ink-950 transition-all duration-500
+      ease-book hover:bg-white hover:tracking-widest focus-visible:outline-offset-4;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-full border border-ink-500/60
+      px-7 py-3.5 text-sm font-medium uppercase tracking-wider text-paper transition-all
+      duration-500 ease-book hover:border-paper hover:bg-paper/5 hover:tracking-widest;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-sm font-medium uppercase
+      tracking-wider text-ink-300 transition-colors duration-300 hover:text-paper;
+  }
+
+  .control-pill {
+    @apply rounded-full border border-transparent px-2.5 py-2;
+  }
+
+  .logo-shine-mask {
+    position: relative;
+    overflow: hidden;
+    width: var(--logo-width);
+    height: var(--logo-height);
+  }
+
+  .logo-shine-mask::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    pointer-events: none;
+    background: linear-gradient(
+      108deg,
+      transparent 0%,
+      transparent 35%,
+      rgb(var(--paper) / 0.08) 44%,
+      rgb(var(--paper) / 0.72) 50%,
+      rgb(var(--paper) / 0.08) 56%,
+      transparent 65%,
+      transparent 100%
+    );
+    background-size: 260% 100%;
+    background-position: 150% 0;
+    opacity: 0;
+    -webkit-mask-image: var(--logo-mask);
+    mask-image: var(--logo-mask);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: var(--logo-width) var(--logo-height);
+    mask-size: var(--logo-width) var(--logo-height);
+    -webkit-mask-position: center;
+    mask-position: center;
+  }
+
+  a:hover .logo-shine-mask::after {
+    animation: logo-shine-pass 0.85s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Champ de formulaire */
+  .field {
+    @apply w-full rounded-lg border border-ink-600/60 bg-ink-900/60 px-4 py-3 text-paper
+      placeholder:text-ink-400 transition-colors duration-300 focus:border-paper/60
+      focus:outline-none focus:ring-1 focus:ring-paper/30;
+  }
+
+  .label {
+    @apply mb-2 block text-xs font-medium uppercase tracking-widest text-ink-300;
+  }
+
+  /* Étiquette de chapitre */
+  .chapter-tag {
+    @apply inline-flex items-center gap-3 text-xs font-medium uppercase tracking-editorial
+      text-ink-300;
+  }
+
+  /* Sections de chapitre : fond noir pur en thème sombre (pas de gris).
+     Le thème clair réintroduit un léger lavé via les surcharges .light plus bas. */
+  .chapter-section {
+    background: transparent;
+  }
+
+  .chapter-wash {
+    background: none;
+  }
+
+  .chapter-accent-line {
+    background: linear-gradient(90deg, transparent, rgb(var(--paper) / 0.58), rgb(var(--ink-500) / 0.42), transparent);
+  }
+}
+
+@layer utilities {
+  /* Grain / texture papier en superposition */
+  .grain-overlay::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    pointer-events: none;
+    background-image: url("/grain.svg");
+    background-size: 220px 220px;
+    opacity: 0.05;
+    mix-blend-mode: overlay;
+  }
+
+  /* Léger « bruit » de fond statique */
+  .paper-texture {
+    background-image: url("/grain.svg");
+    background-size: 200px 200px;
+  }
+
+  /* Déformation typographique subtile */
+  .skew-editorial {
+    transform: skewX(-3deg) scaleY(1.02);
+  }
+
+  /* Numéros éditoriaux en filigrane : visibles, mais assez calmes pour rester décoratifs. */
+  .giant-number {
+    @apply pointer-events-none select-none font-display font-bold leading-none;
+    z-index: 1;
+    color: rgb(var(--paper) / 0.035);
+    -webkit-text-stroke: 1px rgb(var(--paper) / 0.18);
+    text-shadow: 0 0 34px rgb(var(--paper) / 0.055);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Image de marque (logo) blanche par défaut, noircie en thème clair. */
+  .brand-img {
+    filter: none;
+    transition: filter 0.4s ease;
+  }
+  .light .brand-img {
+    filter: brightness(0);
+  }
+
+  /* Logo complet (texte blanc sur fond noir granuleux) :
+     - sombre : le fond noir se fond via screen ;
+     - clair  : on inverse (texte noir) et on fond le blanc via multiply. */
+  .brand-complet {
+    mix-blend-mode: screen;
+    transition: filter 0.4s ease;
+  }
+  .light .brand-complet {
+    filter: invert(1);
+    mix-blend-mode: multiply;
+  }
+}
+
+/* =========================================================================
+   Ajustements de thème clair (éléments à fort contraste)
+   ========================================================================= */
+.light .text-chrome {
+  background: linear-gradient(180deg, #2b2b2f 0%, #6a6d77 45%, #1d1d21 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.light .headline-gradient {
+  background: linear-gradient(180deg, #111114 0%, #24242a 58%, #62626a 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.light .text-outline {
+  -webkit-text-stroke: 1px rgba(20, 20, 23, 0.4);
+}
+
+.light .btn-primary {
+  border: 1px solid rgba(20, 20, 23, 0.92);
+  background: #141417;
+  color: #f7f6f2;
+  box-shadow: 0 12px 28px rgba(20, 20, 23, 0.14);
+}
+
+.light .btn-primary:hover {
+  background: #2d2d33;
+  color: #ffffff;
+  box-shadow: 0 16px 36px rgba(20, 20, 23, 0.2);
+}
+
+.light .btn-secondary {
+  border-color: rgba(20, 20, 23, 0.28);
+  background: rgba(255, 255, 255, 0.58);
+  color: #202026;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.68);
+}
+
+.light .btn-secondary:hover {
+  border-color: rgba(20, 20, 23, 0.72);
+  background: rgba(20, 20, 23, 0.07);
+  color: #111114;
+}
+
+.light .btn-ghost {
+  color: rgba(20, 20, 23, 0.66);
+}
+
+.light .btn-ghost:hover {
+  color: #111114;
+}
+
+.light .control-pill {
+  border-color: rgba(20, 20, 23, 0.12);
+  background: rgba(255, 255, 255, 0.48);
+  color: rgba(20, 20, 23, 0.72);
+}
+
+.light .control-pill:hover {
+  border-color: rgba(20, 20, 23, 0.28);
+  background: rgba(20, 20, 23, 0.06);
+  color: #111114;
+}
+
+.light .field {
+  border-color: rgba(20, 20, 23, 0.16);
+  background: rgba(255, 255, 255, 0.62);
+  color: #141417;
+}
+
+.light .field::placeholder {
+  color: rgba(20, 20, 23, 0.42);
+}
+
+.light .field:focus {
+  border-color: rgba(20, 20, 23, 0.5);
+  box-shadow: 0 0 0 1px rgba(20, 20, 23, 0.16);
+}
+
+.light .chapter-tag {
+  color: rgba(20, 20, 23, 0.56);
+}
+
+.light .giant-number {
+  color: rgba(20, 20, 23, 0.025);
+  -webkit-text-stroke-color: rgba(20, 20, 23, 0.13);
+  text-shadow: 0 0 34px rgba(20, 20, 23, 0.045);
+}
+
+.light .vision-grid {
+  border-color: rgba(20, 20, 23, 0.12);
+  background: rgba(20, 20, 23, 0.12);
+  box-shadow: 0 18px 50px rgba(20, 20, 23, 0.06);
+}
+
+.light .vision-card {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+.light .vision-card:hover {
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.light .chapter-section {
+  background:
+    linear-gradient(180deg, rgb(var(--ink-950) / 0) 0%, rgba(255, 255, 255, 0.42) 48%, rgb(var(--ink-950) / 0) 100%);
+}
+
+.light .chapter-wash {
+  background:
+    linear-gradient(115deg, transparent 0%, rgba(20, 20, 23, 0.045) 42%, transparent 74%),
+    linear-gradient(180deg, transparent 0%, rgba(20, 20, 23, 0.025) 48%, transparent 100%);
+}
+
+/* Transition douce lors du changement de thème */
+body {
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
