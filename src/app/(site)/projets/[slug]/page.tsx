@@ -10,6 +10,7 @@ import { ArrowUpRight, ArrowLeft, Target, Sparkles } from "lucide-react";
 import { ProjectStatusBadge } from "@/components/ProjectStatusBadge";
 import { ProjectTimeline } from "@/components/ProjectTimeline";
 import { ProjectMediaGallery } from "@/components/ProjectMediaGallery";
+import { ProjectTeam } from "@/components/ProjectTeam";
 import { LaunchNotificationForm } from "@/components/LaunchNotificationForm";
 import { Reveal } from "@/components/animation/Reveal";
 import {
@@ -219,6 +220,12 @@ export default async function ProjectPage({
                 <h2 className="label">Galerie</h2>
                 <ProjectMediaGallery media={project.media} />
               </section>
+            </Reveal>
+          )}
+
+          {project.members.length > 0 && (
+            <Reveal>
+              <ProjectTeam members={project.members} />
             </Reveal>
           )}
         </div>

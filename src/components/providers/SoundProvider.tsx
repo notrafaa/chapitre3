@@ -2,12 +2,11 @@
 
 // ===========================================================================
 //  SoundProvider — musique d'ambiance.
-//   - tente de démarrer à l'arrivée sur le site, avec ou sans introduction ;
-//   - reprend au 1er geste utilisateur si l'autoplay est bloqué ;
-//   - s'estompe (duck) après l'intro pour rester discrète ;
-//   - se coupe / réactive très facilement ; la préférence est sauvegardée.
-//
-//  ⚠️ Déposez votre piste dans public/audio/ambient.mp3
+//   - AUCUN son par défaut : rien ne se lance sans action de l'utilisateur ;
+//   - l'utilisateur active/désactive via un bouton clair ;
+//   - volume bas, adapté mobile / desktop ;
+//   - la préférence est sauvegardée ; un visiteur ayant activé le son
+//     le retrouve actif (repris au 1er geste si l'autoplay est bloqué).
 // ===========================================================================
 
 import {
@@ -22,8 +21,14 @@ import {
 
 const STORAGE_KEY = "c3-sound";
 const AUDIO_SRC = "/audio/ambient.mp3";
-const VOL_FULL = 0.24;
-const VOL_DUCK = 0.08;
+
+/** Volume de base, plus bas sur mobile (écran tactile) que sur desktop. */
+function baseVolumes() {
+  const coarse =
+    typeof window !== "undefined" &&
+    window.matchMedia?.("(pointer: coarse)").matches;
+  return coarse ? { full: 0.1, duck: 0.05 } : { full: 0.2, duck: 0.08 };
+}
 
 interface SoundContextValue {
   enabled: boolean;
@@ -53,34 +58,37 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pauseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [enabled, setEnabled] = useState(true);
+  // Désactivé par défaut : aucun son sans consentement explicite.
+  const [enabled, setEnabled] = useState(false);
   const [prefReady, setPrefReady] = useState(false);
   const [started, setStarted] = useState(false);
-  const targetVol = useRef(VOL_FULL);
-  const activeVol = useRef(VOL_FULL);
+  const ducked = useRef(false);
 
-  // Préférence sauvegardée (par défaut : activé).
+  // Préférence sauvegardée (activé uniquement si l'utilisateur l'a choisi).
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === "off") setEnabled(false);
+      if (localStorage.getItem(STORAGE_KEY) === "on") setEnabled(true);
     } catch {
       /* ignore */
     }
     setPrefReady(true);
   }, []);
 
+  const targetVolume = useCallback(() => {
+    const { full, duck } = baseVolumes();
+    return ducked.current ? duck : full;
+  }, []);
+
   /** Fondu progressif du volume vers la cible. */
   const fadeTo = useCallback((target: number) => {
-    targetVol.current = target;
     const audio = audioRef.current;
     if (!audio) return;
     if (fadeRef.current) clearInterval(fadeRef.current);
     fadeRef.current = setInterval(() => {
       if (!audio) return;
-      const diff = targetVol.current - audio.volume;
-      if (Math.abs(diff) < 0.02) {
-        audio.volume = Math.max(0, Math.min(1, targetVol.current));
+      const diff = target - audio.volume;
+      if (Math.abs(diff) < 0.015) {
+        audio.volume = Math.max(0, Math.min(1, target));
         if (fadeRef.current) clearInterval(fadeRef.current);
         fadeRef.current = null;
         return;
@@ -101,25 +109,21 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     if (p) {
       p.then(() => {
         setStarted(true);
-        fadeTo(activeVol.current);
+        fadeTo(targetVolume());
       }).catch(() => {
-        // Autoplay bloqué : on réessaiera au premier geste utilisateur.
+        // Autoplay bloqué : reprise au premier geste (utilisateur déjà consentant).
       });
     }
-  }, [fadeTo]);
+  }, [fadeTo, targetVolume]);
 
+  // Reprise pour un visiteur ayant DÉJÀ activé le son (préférence sauvegardée).
   useEffect(() => {
     if (!prefReady || !enabled) return;
     const audio = audioRef.current;
     if (audio && audio.paused) playNow();
-  }, [prefReady, enabled, playNow]);
-
-  // Reprise automatique au premier geste si l'autoplay a été bloqué.
-  useEffect(() => {
-    if (!prefReady || !enabled) return;
     const onInteract = () => {
-      const audio = audioRef.current;
-      if (audio && audio.paused) playNow();
+      const a = audioRef.current;
+      if (a && a.paused) playNow();
     };
     const opts = { once: true } as AddEventListenerOptions;
     window.addEventListener("pointerdown", onInteract, opts);
@@ -139,6 +143,7 @@ export function SoundProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // ensureStart ne démarre RIEN si le son n'est pas activé : pas d'autoplay.
   const ensureStart = useCallback(() => {
     if (!enabled) return;
     const audio = audioRef.current;
@@ -147,10 +152,10 @@ export function SoundProvider({ children }: { children: ReactNode }) {
 
   const duck = useCallback(
     (on: boolean) => {
-      activeVol.current = on ? VOL_DUCK : VOL_FULL;
-      if (enabled) fadeTo(activeVol.current);
+      ducked.current = on;
+      if (enabled) fadeTo(targetVolume());
     },
-    [enabled, fadeTo],
+    [enabled, fadeTo, targetVolume],
   );
 
   const toggle = useCallback(() => {
@@ -185,7 +190,7 @@ export function SoundProvider({ children }: { children: ReactNode }) {
   return (
     <SoundContext.Provider value={{ enabled, started, toggle, ensureStart, duck }}>
       {children}
-      <audio ref={audioRef} src={AUDIO_SRC} loop preload="auto" aria-hidden />
+      <audio ref={audioRef} src={AUDIO_SRC} loop preload="none" aria-hidden />
     </SoundContext.Provider>
   );
 }

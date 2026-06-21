@@ -11,17 +11,20 @@ import { cn } from "@/lib/utils";
 import { Reveal } from "@/components/animation/Reveal";
 
 interface ChapterSectionProps {
-  number: string;
+  /** Petit intitulé de section (remplace l'ancien « Chapitre N »). */
+  kicker?: string;
+  number?: string;
   title: string;
   id?: string;
   children: ReactNode;
   className?: string;
-  /** Chiffre géant affiché en filigrane. */
+  /** Caractère géant affiché en filigrane. */
   ghost?: string;
   align?: "left" | "right";
 }
 
 export function ChapterSection({
+  kicker,
   number,
   title,
   id,
@@ -83,7 +86,7 @@ export function ChapterSection({
       <div className="container-editorial relative z-10">
         <Reveal>
           <div className="chapter-tag mb-6">
-            <span className="font-mono">Chapitre {number}</span>
+            <span className="font-mono">{kicker ?? `Chapitre ${number ?? ""}`}</span>
             <span className="hairline w-12 flex-none" />
             <span>{title}</span>
           </div>

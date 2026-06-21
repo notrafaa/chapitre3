@@ -10,6 +10,7 @@ import Link from "next/link";
 import { Save, Wand2, Eye, ArrowLeft } from "lucide-react";
 import { saveProjectAction } from "@/actions/projects";
 import { SingleImageUploader, MediaUploader } from "@/components/admin/MediaUploader";
+import { MembersEditor } from "@/components/admin/MembersEditor";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { useToast } from "@/components/ui/Toaster";
 import { slugify } from "@/lib/utils";
@@ -190,6 +191,13 @@ export function ProjectEditor({ project }: { project?: ProjectWithMedia }) {
               <span className="label">Galerie (images & vidéos courtes)</span>
               <MediaUploader initial={project?.media ?? []} />
             </div>
+          </Section>
+
+          <Section title="Équipe du projet">
+            <p className="-mt-2 mb-1 text-xs text-ink-500">
+              Les personnes qui travaillent sur ce projet (affichées sur sa page).
+            </p>
+            <MembersEditor initial={project?.members ?? []} />
           </Section>
         </div>
 

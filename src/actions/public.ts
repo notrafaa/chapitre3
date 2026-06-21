@@ -7,6 +7,8 @@
 
 import { createAnonClient } from "@/lib/supabase/anon";
 import { getClientKey, rateLimit } from "@/lib/rate-limit";
+import { verifyCaptcha } from "@/lib/captcha";
+import { notifyContactDiscord } from "@/lib/notify";
 import {
   contactSchema,
   ideaSubmissionSchema,
@@ -135,9 +137,18 @@ export async function submitContactAction(
     return fail("Veuillez corriger les champs en surbrillance.", flattenFieldErrors(parsed.error));
   }
 
+  // CAPTCHA optionnel (ignoré si non configuré).
+  const captchaOk = await verifyCaptcha(
+    String(formData.get("captcha_token") ?? ""),
+  );
+  if (!captchaOk) {
+    return fail("Vérification anti-robot échouée. Merci de réessayer.");
+  }
+
+  // Cooldown anti-spam : 1 envoi / 10 s par visiteur (vérifié côté serveur).
   const key = await getClientKey("contact");
-  if (!rateLimit(key, 3, 60_000)) {
-    return fail("Trop de tentatives. Réessayez dans une minute.");
+  if (!rateLimit(key, 1, 10_000)) {
+    return fail("Merci de patienter quelques secondes avant de renvoyer un message.");
   }
 
   const supabase = createAnonClient();
@@ -153,6 +164,14 @@ export async function submitContactAction(
     console.error("submitContactAction:", error.message);
     return fail("Une erreur est survenue. Merci de réessayer.");
   }
+
+  // Notification Discord (best-effort, ignorée si non configurée).
+  await notifyContactDiscord({
+    name: parsed.data.name,
+    email: parsed.data.email,
+    subject: parsed.data.subject || null,
+    message: parsed.data.message,
+  });
 
   return {
     success: true,

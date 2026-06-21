@@ -8,7 +8,12 @@
 import "server-only";
 import { createAnonClient } from "@/lib/supabase/anon";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Project, ProjectMedia, ProjectWithMedia } from "@/types";
+import type {
+  Project,
+  ProjectMedia,
+  ProjectMember,
+  ProjectWithMedia,
+} from "@/types";
 
 /** Tous les projets visibles publiquement, triés par ordre d'affichage. */
 export async function getPublicProjects(): Promise<Project[]> {
@@ -47,6 +52,42 @@ export async function getFeaturedProjects(limit = 3): Promise<Project[]> {
   }
 }
 
+/**
+ * Projets pour la vitrine d'accueil : les « mis en avant » d'abord, complétés
+ * par les plus récents (publiés / en construction) jusqu'à `limit`.
+ * La RLS exclut automatiquement les projets privés.
+ */
+export async function getShowcaseProjects(limit = 6): Promise<Project[]> {
+  const supabase = createAnonClient();
+  if (!supabase) return [];
+  try {
+    const { data: featured } = await supabase
+      .from("projects")
+      .select("*")
+      .eq("featured", true)
+      .order("display_order", { ascending: true });
+
+    const list: Project[] = [...(featured ?? [])];
+
+    if (list.length < limit) {
+      const { data: recent } = await supabase
+        .from("projects")
+        .select("*")
+        .in("status", ["published", "building"])
+        .order("created_at", { ascending: false })
+        .limit(limit * 2);
+      for (const p of recent ?? []) {
+        if (list.length >= limit) break;
+        if (!list.some((x) => x.id === p.id)) list.push(p);
+      }
+    }
+    return list.slice(0, limit);
+  } catch (e) {
+    console.error("getShowcaseProjects:", e);
+    return [];
+  }
+}
+
 /** Fiche détaillée d'un projet par slug (avec sa galerie). */
 export async function getProjectBySlug(
   slug: string,
@@ -61,13 +102,24 @@ export async function getProjectBySlug(
       .maybeSingle();
     if (error || !project) return null;
 
-    const { data: media } = await supabase
-      .from("project_media")
-      .select("*")
-      .eq("project_id", project.id)
-      .order("display_order", { ascending: true });
+    const [{ data: media }, { data: members }] = await Promise.all([
+      supabase
+        .from("project_media")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("display_order", { ascending: true }),
+      supabase
+        .from("project_members")
+        .select("*")
+        .eq("project_id", project.id)
+        .order("display_order", { ascending: true }),
+    ]);
 
-    return { ...project, media: (media as ProjectMedia[]) ?? [] };
+    return {
+      ...project,
+      media: (media as ProjectMedia[]) ?? [],
+      members: (members as ProjectMember[]) ?? [],
+    };
   } catch (e) {
     console.error("getProjectBySlug:", e);
     return null;
@@ -149,13 +201,24 @@ export async function getProjectByIdAdmin(
 
   if (!project) return null;
 
-  const { data: media } = await supabase
-    .from("project_media")
-    .select("*")
-    .eq("project_id", id)
-    .order("display_order", { ascending: true });
+  const [{ data: media }, { data: members }] = await Promise.all([
+    supabase
+      .from("project_media")
+      .select("*")
+      .eq("project_id", id)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("project_members")
+      .select("*")
+      .eq("project_id", id)
+      .order("display_order", { ascending: true }),
+  ]);
 
-  return { ...project, media: (media as ProjectMedia[]) ?? [] };
+  return {
+    ...project,
+    media: (media as ProjectMedia[]) ?? [],
+    members: (members as ProjectMember[]) ?? [],
+  };
 }
 
 /** Aperçu admin d'un projet par slug (même non publié). */
@@ -171,11 +234,22 @@ export async function getProjectBySlugAdmin(
 
   if (!project) return null;
 
-  const { data: media } = await supabase
-    .from("project_media")
-    .select("*")
-    .eq("project_id", project.id)
-    .order("display_order", { ascending: true });
+  const [{ data: media }, { data: members }] = await Promise.all([
+    supabase
+      .from("project_media")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("display_order", { ascending: true }),
+    supabase
+      .from("project_members")
+      .select("*")
+      .eq("project_id", project.id)
+      .order("display_order", { ascending: true }),
+  ]);
 
-  return { ...project, media: (media as ProjectMedia[]) ?? [] };
+  return {
+    ...project,
+    media: (media as ProjectMedia[]) ?? [],
+    members: (members as ProjectMember[]) ?? [],
+  };
 }

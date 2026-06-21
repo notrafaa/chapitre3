@@ -118,6 +118,39 @@ export interface Database {
           },
         ];
       };
+      project_members: {
+        Row: {
+          id: string;
+          project_id: string;
+          name: string;
+          role: string | null;
+          avatar_url: string | null;
+          link: string | null;
+          description: string | null;
+          display_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          project_id: string;
+          name: string;
+          role?: string | null;
+          avatar_url?: string | null;
+          link?: string | null;
+          description?: string | null;
+          display_order?: number;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["project_members"]["Insert"]>;
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_id_fkey";
+            columns: ["project_id"];
+            referencedRelation: "projects";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       launch_subscribers: {
         Row: {
           id: string;

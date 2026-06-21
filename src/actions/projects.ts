@@ -20,6 +20,15 @@ const mediaItemSchema = z.object({
   display_order: z.number().int().default(0),
 });
 
+const memberItemSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  role: z.string().trim().max(80).optional().nullable(),
+  avatar_url: z.string().trim().optional().nullable(),
+  link: z.string().trim().max(500).optional().nullable(),
+  description: z.string().trim().max(300).optional().nullable(),
+  display_order: z.number().int().default(0),
+});
+
 /** Découpe un textarea en lignes nettoyées (objectifs / fonctionnalités). */
 function linesToArray(value: FormDataEntryValue | null): string[] {
   if (typeof value !== "string") return [];
@@ -156,6 +165,30 @@ export async function saveProjectAction(
       }
     } catch (e) {
       console.error("saveProjectAction(media):", e);
+    }
+  }
+
+  // Synchronisation des membres (remplacement complet de l'équipe).
+  const membersRaw = formData.get("members_json");
+  if (projectId && typeof membersRaw === "string" && membersRaw.length) {
+    try {
+      const items = z.array(memberItemSchema).parse(JSON.parse(membersRaw));
+      await supabase.from("project_members").delete().eq("project_id", projectId);
+      if (items.length) {
+        await supabase.from("project_members").insert(
+          items.map((m, i) => ({
+            project_id: projectId!,
+            name: m.name,
+            role: m.role || null,
+            avatar_url: m.avatar_url || null,
+            link: m.link || null,
+            description: m.description || null,
+            display_order: m.display_order ?? i,
+          })),
+        );
+      }
+    } catch (e) {
+      console.error("saveProjectAction(members):", e);
     }
   }
 
